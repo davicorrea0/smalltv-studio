@@ -261,12 +261,17 @@ export function resizeAsset(asset: Asset, width: number, height: number): Asset 
 /* STI1 for a spec 1 theme. A spec 2 theme gets the smallest of STI1, STI2 in colors and STI2 through
  * a palette, in that order on a tie, as the firmware's packer does. */
 export function encodeImage(asset: Asset, spec: 1 | 2 = 1): Uint8Array<ArrayBuffer> {
-  const sti1 = encodeSti1(asset);
-  if (spec < 2) return sti1;
-  let best = sti1;
-  for (const form of [encodeSti2(asset), encodeSti2(asset, true)]) if (form && form.length < best.length) best = form;
+  if (spec < 2) return encodeSti1(asset);
+  // Every edit packs the theme again: an asset is never changed in place, so its spec 2 bytes are kept with it.
+  let best = encoded.get(asset);
+  if (!best) {
+    best = encodeSti1(asset);
+    for (const form of [encodeSti2(asset), encodeSti2(asset, true)]) if (form && form.length < best.length) best = form;
+    encoded.set(asset, best);
+  }
   return best;
 }
+const encoded = new WeakMap<Asset, Uint8Array<ArrayBuffer>>();
 function encodeSti1(asset: Asset): Uint8Array<ArrayBuffer> {
   const { width, height, colors, alpha } = asset;
   if (!sideOK(width) || !sideOK(height) || colors.length !== width * height || alpha.length !== width * height) throw Error('Invalid image asset');

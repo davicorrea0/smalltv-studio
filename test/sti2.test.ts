@@ -129,3 +129,12 @@ describe('spec 2 manifest rules', () => {
     expect(C.validate(withSource(2, 'w', 'age')).join()).toMatch(/^data\[0\]\.fields\[0\]\.id: .*age/);
   });
 });
+
+describe('spec 2 encoding cache', () => {
+  it('encodes an asset once per spec 2 export', () => {
+    const asset = C.decodeImage(file('alpha-sti1.sti')), first = C.encodeImage(asset, 2);
+    expect(C.encodeImage(asset, 2)).toBe(first);
+    expect(C.encodeImage(asset, 1)).toEqual(file('alpha-sti1.sti'));
+    expect(C.encodeImage(C.resizeAsset(asset, 35, 5), 2)).not.toBe(first);
+  });
+});
