@@ -102,6 +102,8 @@ export function validate(theme: unknown, assets: Assets | null = null): string[]
       if (!object(source, p, ['id', 'url', 'interval', 'insecureTls', 'fields'])) return;
       string(source, 'id', p, 32); string(source, 'url', p, 200); number(source, 'interval', p, 10, 86400);
       if (!idOK(source.id) || source.id.includes('.')) fail(p + '.id', 'use letters, digits, - or _');
+      // Spec 2 has built-in `time.*` and `device.*` sources; the firmware refuses a data source with either name.
+      if (theme.spec === 2 && (source.id === 'time' || source.id === 'device')) fail(p + '.id', 'time and device are the names of built-in sources');
       if (source.insecureTls != null && typeof source.insecureTls !== 'boolean') fail(p + '.insecureTls', 'expected true or false');
       if (typeof source.url === 'string') {
         if (!/^https?:\/\/[^/?#]/.test(source.url)) fail(p + '.url', 'expected an http:// or https:// URL that includes a host');
@@ -115,6 +117,8 @@ export function validate(theme: unknown, assets: Assets | null = null): string[]
         string(field, 'id', fp, 24); string(field, 'path', fp, 96);
         if (!idOK(field.id) || field.id.includes('.')) fail(fp + '.id', 'use letters, digits, - or _');
         if (ids.has(field.id)) fail(fp + '.id', 'duplicate field ID');
+        // In spec 2, {<source>.age} is the minutes since the source's last fetch, not a declared field.
+        if (theme.spec === 2 && field.id === 'age') fail(fp + '.id', 'in spec 2, age is the minutes since the last fetch; use another ID');
         ids.add(field.id);
         if (typeof field.path === 'string' && !/^[A-Za-z0-9_-]+(\.[A-Za-z0-9_-]+)*$/.test(field.path)) fail(fp + '.path', 'use a dotted JSON object path');
         fields.push(source.id + '.' + field.id);

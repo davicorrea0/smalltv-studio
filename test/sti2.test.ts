@@ -112,3 +112,20 @@ describe('spec 1 and spec 2 packages', () => {
     expect(C.validate(theme(2), assets)).toEqual([]);
   });
 });
+
+describe('spec 2 manifest rules', () => {
+  const withSource = (spec: 1 | 2, id: string, field = 'temp'): Theme => ({
+    spec, theme: { id: 'data', name: 'Data', author: 'Test', version: '1' }, display: { width: 240, height: 240, background: '#000000' },
+    data: [{ id, url: 'http://192.168.1.2/d.json', interval: 60, fields: [{ id: field, path: 'a' }] }], layers: [],
+  });
+  it('refuses a data source called time or device, as the firmware does', () => {
+    for (const id of ['time', 'device']) {
+      expect(C.validate(withSource(1, id))).toEqual([]);
+      expect(C.validate(withSource(2, id))).toEqual(['data[0].id: time and device are the names of built-in sources']);
+    }
+  });
+  it('flags a field called age, which spec 2 reserves for the time since the last fetch', () => {
+    expect(C.validate(withSource(1, 'w', 'age'))).toEqual([]);
+    expect(C.validate(withSource(2, 'w', 'age')).join()).toMatch(/^data\[0\]\.fields\[0\]\.id: .*age/);
+  });
+});
